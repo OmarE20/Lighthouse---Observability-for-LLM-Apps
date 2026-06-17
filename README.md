@@ -2,32 +2,6 @@
 
 Observability for LLM apps: request traces, token costs, latency percentiles, and side-by-side prompt-version diffs. Think Datadog, but for the failure modes that are specific to LLM calls.
 
-**60-second demo video:** _placeholder -- record a Loom walking through `make example` → dashboard → prompt diff view, then link it here._
-
-## Install + instrument in 3 lines
-
-```bash
-pip install -e ".[openai]"
-```
-
-```python
-import lighthouse
-from openai import OpenAI
-
-client = lighthouse.wrap(OpenAI())   # 1: wrap once
-# ...use `client` exactly as before -- every call is now captured non-blockingly
-```
-
-That's it. No logging calls scattered through your code. Group a multi-call operation into one trace:
-
-```python
-with lighthouse.trace("answer_question"):
-    client.chat.completions.create(...)   # retrieval
-    client.chat.completions.create(...)   # generation
-```
-
-Anthropic works the same way: `lighthouse.wrap(Anthropic())`.
-
 ## Architecture
 
 ```mermaid
@@ -40,29 +14,6 @@ flowchart LR
     E --> G[FastAPI server]
     G --> H[React + Vite + Recharts dashboard]
 ```
-
-## First-run commands
-
-```bash
-cp .env.example .env                       # add OPENAI_API_KEY / ANTHROPIC_API_KEY if you have them
-pip install -e ".[dev,server,openai,anthropic]"
-
-python examples/run_example.py             # generates demo data (works with no API key -- falls back to a simulated client)
-
-uvicorn server.main:app --reload --port 8000   # backend
-cd dashboard && npm install && npm run dev     # dashboard, in a second terminal
-```
-
-Open `http://localhost:5173`. Env vars: `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` (optional -- example runs without them), `LIGHTHOUSE_DATABASE_URL` (defaults to local SQLite), `LIGHTHOUSE_CORS_ORIGINS`, `VITE_API_URL` (dashboard → backend, defaults to `http://localhost:8000`).
-
-Or with Docker: `docker compose up --build` (brings up backend on `:8000` and dashboard on `:5173`).
-
-## Dashboard screenshots
-
-_placeholder -- run `python examples/run_example.py` to populate data, then screenshot:_
-- Cost-over-time + cost-by-model chart
-- Latency p50/p95/p99 chart
-- Prompt-version side-by-side diff view
 
 ## Design decisions
 
@@ -81,7 +32,3 @@ _placeholder -- run `python examples/run_example.py` to populate data, then scre
 - **Only OpenAI's `chat.completions` and Anthropic's `messages` are wrapped** -- not streaming responses, the Responses API, or embeddings endpoints.
 - **No auth on the dashboard/API.** Fine for local/portfolio use; would need an auth layer before being multi-tenant or internet-facing.
 - **SQLite is single-writer.** Fine for dev and the example app; concurrent production workloads should set `LIGHTHOUSE_DATABASE_URL` to Postgres.
-
-## Tasks
-
-`make install` · `make serve` · `make dashboard` · `make example` · `make overhead` · `make test` · `make docker`
